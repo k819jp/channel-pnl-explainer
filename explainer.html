@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>販路・粗利ダッシュボード × AI施策ループ — 第三者向け説明</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --line: #e6e8ef;
+        --text: #121722;
+        --muted: #5c6578;
+        --accent: #1e5eff;
+        --accent-soft: #e8efff;
+        --own: #0f766e;
+        --own-soft: #ccfbf1;
+        --ext: #7c3aed;
+        --ext-soft: #ede9fe;
+        --warn: #b45309;
+        --warn-soft: #fffbeb;
+        --radius: 14px;
+        --shadow: 0 2px 10px rgba(18, 23, 34, 0.06);
+        --sans: "IBM Plex Sans JP", system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+      }
+
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 1.25rem 4rem;
+      }
+
+      header.hero {
+        background: linear-gradient(160deg, #0f1b3d 0%, #1e3a8a 55%, #1e5eff 100%);
+        color: #fff;
+        padding: 3rem 1.25rem 3.5rem;
+        text-align: center;
+      }
+
+      header.hero .kicker {
+        font-size: 0.78rem;
+        letter-spacing: 0.18em;
+        font-weight: 600;
+        opacity: 0.85;
+        text-transform: uppercase;
+      }
+
+      header.hero h1 {
+        margin: 0.75rem auto 0.5rem;
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        max-width: 24em;
+      }
+
+      header.hero p {
+        margin: 0.5rem auto 0;
+        max-width: 40em;
+        font-size: 1rem;
+        opacity: 0.92;
+      }
+
+      .hero-actions {
+        margin-top: 1.75rem;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 0.7rem 1.3rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+
+      .btn-primary {
+        background: #fff;
+        color: #1e3a8a;
+      }
+
+      .btn-ghost {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+
+      .toc {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.85rem;
+        margin: -2rem auto 0;
+        position: relative;
+        z-index: 2;
+      }
+
+      .toc-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 1rem 1.1rem;
+      }
+
+      .toc-card .n {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 0.08em;
+      }
+
+      .toc-card h3 {
+        margin: 0.35rem 0 0.2rem;
+        font-size: 0.98rem;
+      }
+
+      .toc-card p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      section.block {
+        margin-top: 3.25rem;
+      }
+
+      .sec-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: var(--accent);
+        text-transform: uppercase;
+      }
+
+      section.block > h2 {
+        margin: 0.4rem 0 0.4rem;
+        font-size: clamp(1.4rem, 3vw, 1.85rem);
+        letter-spacing: -0.02em;
+      }
+
+      .lead {
+        font-size: 1.02rem;
+        color: var(--text);
+        margin: 0 0 1.25rem;
+      }
+
+      .lead strong {
+        background: linear-gradient(transparent 65%, var(--accent-soft) 65%);
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 1.1rem 1.2rem;
+        margin-top: 1rem;
+      }
+
+      .preview-shell {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .preview-frame {
+        border: 0;
+        display: block;
+        transform-origin: top left;
+        background: #fff;
+      }
+
+      .preview-cap {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0.6rem 0 0;
+        text-align: center;
+      }
+
+      .layout-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.6rem;
+        margin-top: 1rem;
+      }
+
+      .lane {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.75rem 0.8rem;
+        background: #fafbfe;
+      }
+
+      .lane .tag {
+        font-size: 0.66rem;
+        font-weight: 700;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+      }
+
+      .lane h4 {
+        margin: 0.3rem 0 0.25rem;
+        font-size: 0.92rem;
+      }
+
+      .lane p {
+        margin: 0;
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .lane.is-new {
+        border-color: #c7d2fe;
+        background: #f5f7ff;
+      }
+
+      .lane.is-new .tag {
+        color: var(--accent);
+      }
+
+      .flow {
+        display: flex;
+        align-items: stretch;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+
+      .flow-step {
+        flex: 1 1 180px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.8rem 0.85rem;
+        background: #fff;
+        position: relative;
+      }
+
+      .flow-step .badge {
+        display: inline-block;
+        font-size: 0.66rem;
+        font-weight: 800;
+        color: #fff;
+        background: var(--accent);
+        border-radius: 999px;
+        padding: 0.12rem 0.5rem;
+        margin-bottom: 0.4rem;
+      }
+
+      .flow-step h4 {
+        margin: 0 0 0.3rem;
+        font-size: 0.9rem;
+      }
+
+      .flow-step p {
+        margin: 0;
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .feature {
+        display: grid;
+        grid-template-columns: 2.2rem 1fr;
+        gap: 0.85rem;
+        align-items: start;
+        padding: 0.95rem 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .feature:first-of-type {
+        border-top: none;
+      }
+
+      .feature .ic {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #fff;
+        background: var(--accent);
+      }
+
+      .feature h4 {
+        margin: 0.1rem 0 0.25rem;
+        font-size: 1rem;
+      }
+
+      .feature p {
+        margin: 0;
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      .feature .how {
+        margin-top: 0.4rem;
+        font-size: 0.8rem;
+        color: var(--text);
+        background: var(--accent-soft);
+        border-radius: 8px;
+        padding: 0.45rem 0.6rem;
+      }
+
+      .feasible {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.86rem;
+      }
+
+      .feasible th,
+      .feasible td {
+        border: 1px solid var(--line);
+        padding: 0.6rem 0.7rem;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .feasible th {
+        background: #f1f5f9;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .ok {
+        color: #166534;
+        font-weight: 700;
+      }
+
+      .partial {
+        color: var(--warn);
+        font-weight: 700;
+      }
+
+      .struggle {
+        border-left: 3px solid var(--warn);
+        background: var(--warn-soft);
+        border-radius: 0 12px 12px 0;
+        padding: 0.85rem 1rem;
+        margin-top: 1rem;
+      }
+
+      .struggle h4 {
+        margin: 0 0 0.3rem;
+        font-size: 0.96rem;
+      }
+
+      .struggle p {
+        margin: 0;
+        font-size: 0.86rem;
+        color: #5b4a25;
+      }
+
+      .struggle .resolve {
+        margin-top: 0.45rem;
+        font-size: 0.82rem;
+        color: var(--text);
+        background: #fff;
+        border-radius: 8px;
+        padding: 0.45rem 0.6rem;
+      }
+
+      .takeaway {
+        margin-top: 1.25rem;
+        background: linear-gradient(160deg, #0f1b3d, #1e3a8a);
+        color: #fff;
+        border-radius: var(--radius);
+        padding: 1.4rem 1.4rem;
+      }
+
+      .takeaway h3 {
+        margin: 0 0 0.4rem;
+        font-size: 1.1rem;
+      }
+
+      .takeaway p {
+        margin: 0;
+        opacity: 0.92;
+        font-size: 0.92rem;
+      }
+
+      footer.note {
+        margin-top: 3rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--line);
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-align: center;
+      }
+
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="kicker">AI-Driven School / 月次課題</div>
+      <h1>販路・粗利ダッシュボードに「AI施策の実行ループ」を載せる</h1>
+      <p>
+        事業収支シミュレーション（販路 × 商品の売上・粗利）のダッシュボードに、
+        <strong>①AIと相談して施策を磨く → ②採用を決めて履歴に残す → ③チームに共有して会議に乗せる</strong>
+        という一連の流れを追加した点がもっとも工夫した部分です。このページはその内容を第三者に説明するための資料です。
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="./index.html" target="_blank" rel="noopener">ダッシュボード本体を開く ↗</a>
+        <a class="btn btn-ghost" href="#capture">画面を見る ↓</a>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="toc">
+        <div class="toc-card">
+          <div class="n">01</div>
+          <h3>画面のキャプチャ</h3>
+          <p>どんな情報をどんな画面構成で作ったか？</p>
+        </div>
+        <div class="toc-card">
+          <div class="n">02</div>
+          <h3>解決する課題</h3>
+          <p>「アナログ管理の情報を自動で一元管理＆管理 / 分析で止まる」をなくす</p>
+        </div>
+        <div class="toc-card">
+          <div class="n">03</div>
+          <h3>工夫したポイント</h3>
+          <p>分析→意思決定→実行を1画面で</p>
+        </div>
+        <div class="toc-card">
+          <div class="n">04</div>
+          <h3>苦戦したポイント</h3>
+          <p>まだ改善中：情報整理と見やすさ</p>
+        </div>
+      </div>
+
+      <!-- SECTION 1 -->
+      <section class="block" id="capture">
+        <div class="sec-label">Section 1</div>
+        <h2>画面のキャプチャ</h2>
+        <p class="lead">
+          下の枠は、実際の <strong>index.html をそのまま埋め込んだライブプレビュー</strong>です（画像ではありません）。
+          右側の<strong>第3ペイン（商品ランキング）と第4ペイン（AI分析・施策＝相談／採用／共有）</strong>まで見えるよう、広い画面幅で描画して縮小表示しています。
+        </p>
+        <div class="card">
+          <div class="preview-shell" id="previewShell">
+            <iframe class="preview-frame" id="previewFrame" src="./index.html" title="販路・粗利ダッシュボードのライブプレビュー" loading="lazy"></iframe>
+          </div>
+          <p class="preview-cap">
+            ライブプレビュー（操作可・第3＆第4ペインまで表示）。うまく表示されない場合は
+            <a href="./index.html" target="_blank" rel="noopener">別タブで開いてください ↗</a>。
+          </p>
+        </div>
+
+        <div class="layout-grid">
+          <div class="lane">
+            <div class="tag">左ペイン</div>
+            <h4>販路フィルタ</h4>
+            <p>自社EC／外部販路（百貨店・その他）と取引先で、表とグラフを絞り込む。</p>
+          </div>
+          <div class="lane">
+            <div class="tag">中央ペイン</div>
+            <h4>明細とKPI</h4>
+            <p>販路×商品の売上・手数料・原価・粗利を一覧。上部にKPIカード。</p>
+          </div>
+          <div class="lane">
+            <div class="tag">右ペイン・上段</div>
+            <h4>商品ランキング</h4>
+            <p>表示中の集計から売上／粗利のTop5を横棒グラフで表示。</p>
+          </div>
+          <div class="lane is-new">
+            <div class="tag">右ペイン・下段 ★今回</div>
+            <h4>AI分析・施策ループ</h4>
+            <p>施策を「相談で磨く→採用で記録→共有で会議へ」。決定履歴とSlack/カレンダー連携。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2 -->
+      <section class="block">
+        <div class="sec-label">Section 2</div>
+        <h2>解決する課題</h2>
+        <p class="lead">
+          このDBが解決しようとしているのは、<strong>「数字は見えた。でも、そこから先に進まない」</strong>という状態です。
+        </p>
+        <div class="card">
+          <p style="margin: 0 0 0.6rem">
+            販路・粗利のダッシュボードは「現状把握」までは可能になりましたが、実運用の現場では次の3つで止まりがちです。
+          </p>
+          <ul style="margin: 0; padding-left: 1.2rem; color: var(--muted); font-size: 0.9rem">
+            <li><strong>課題に対する打ち手がすぐに出ない</strong>：問題や課題はわかっても、そこから解決案や施策までが出てこない or 遅い。</li>
+            <li><strong>決定が残らない</strong>：「どれをやると決めたか」が画面の外（口頭・チャット）に流れて消える。</li>
+            <li><strong>実行に橋がない</strong>：決めても、共有・会議化は手作業で、温度が下がる。</li>
+          </ul>
+        </div>
+        <div class="takeaway">
+          <h3>狙い：分析と実行のあいだの「谷」を埋める</h3>
+          <p>
+            「見る」だけのツールから一歩進めて、<strong>相談 → 決定 → 共有</strong>までを同じ画面で完結させ、
+            意思決定の速度と再現性を上げることを目指しました。
+          </p>
+        </div>
+      </section>
+
+      <!-- SECTION 3 -->
+      <section class="block">
+        <div class="sec-label">Section 3</div>
+        <h2>工夫したポイント</h2>
+        <p class="lead">
+          追加した3機能は、すべて<strong>「次の行動につながるか」</strong>を基準に設計しました。
+        </p>
+
+        <div class="card">
+          <div class="feature">
+            <div class="ic">1</div>
+            <div>
+              <h4>AIと相談して施策をブラッシュアップ</h4>
+              <p>各施策に「AIと相談」を用意。チャットで方向性を伝えると、改訂版（v2, v3…）として本文に反映されます。</p>
+              <div class="how">
+                工夫：自由入力に加えて「コスト/工数を抑える」「リスクと対策」「KPIを付ける」などの
+                <strong>ワンタップの観点チップ</strong>を用意。考える負荷を下げ、磨く方向を即選べるようにしました。
+              </div>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="ic">2</div>
+            <div>
+              <h4>採用を「決定」として履歴に残す</h4>
+              <p>「この施策を採用」を押すと、その時点の内容・改訂版・日時がスナップショットとして決定履歴に記録されます。</p>
+              <div class="how">
+                工夫：採用件数を<strong>AIへの入力コンテキストとして明示</strong>し、分析コメントに
+                「過去N件の決定を踏まえ重複を避ける」と申し送りを表示。AIが決定を“知っている”状態を可視化しました。
+              </div>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="ic">3</div>
+            <div>
+              <h4>共有ボタンでSlack＋会議アジェンダへ</h4>
+              <p>採用済み施策の「チームに共有」から、Slack送信（チャンネル選択・本文編集）と、会議アジェンダへの追加を1モーダルで実行。</p>
+              <div class="how">
+                工夫：カレンダーの直近会議を読み込み、施策内容から<strong>関連度の高い会議をAIが推奨選択</strong>。
+                共有済み・アジェンダ追加済みのステータスは履歴側にバッジで残ります。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow">
+          <div class="flow-step">
+            <span class="badge">STEP 1</span>
+            <h4>相談で磨く</h4>
+            <p>観点チップ／自由入力で改訂版を生成。</p>
+          </div>
+          <div class="flow-step">
+            <span class="badge">STEP 2</span>
+            <h4>採用を決める</h4>
+            <p>決定履歴に記録、AIへ申し送り。</p>
+          </div>
+          <div class="flow-step">
+            <span class="badge">STEP 3</span>
+            <h4>チームへ共有</h4>
+            <p>Slack送信＋関連会議のアジェンダへ。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4 -->
+      <section class="block">
+        <div class="sec-label">Section 4</div>
+        <h2>苦戦した/しているポイント</h2>
+        <p class="lead">
+          苦戦した／しているのは、主に次の2つです。
+        </p>
+        <div class="card">
+          <ul style="margin: 0; padding-left: 1.2rem; color: var(--text); font-size: 0.9rem">
+            <li>収集した情報の統合と、その見やすさ／分析につながる情報の整理</li>
+            <li>ネクストアクションの Slack連携 / カレンダー連携 部分</li>
+          </ul>
+        </div>
+
+        <div class="struggle">
+          <h4>① 元情報のアナログ管理によるデータ突合の不具合</h4>
+          <p>
+            アナログ管理されていた一部販路の販売実績・商品情報が<strong>手入力の商品名</strong>になっており、
+            データ管理されている別販路（自社サイト）の商品情報と<strong>不一致</strong>が起きる。
+            商品番号での管理入力の徹底が必要です。
+          </p>
+        </div>
+
+        <div class="struggle">
+          <h4>② 複雑な情報を理解するために、いかに読み手の負荷を軽減できるか</h4>
+          <p>
+            <strong>まだ絶賛改善中</strong>：商品情報 × 販路（複数）× 売上/利益 と多数の情報がまたがるため、
+            テキスト・数字表記のみだと理解・把握がしづらく、分析フェーズまでスムーズに頭が移行しません。
+            できる限り「考える・分析する」パートまで、情報処理の負荷をどれだけ下げられるかに苦慮しています。
+          </p>
+        </div>
+
+        <div class="struggle">
+          <h4>③ 施策の共有方法 / 内容の見せ方はまだ未検討</h4>
+          <p>
+            決定した施策案を、どのような表現・内容で共有するのかがまだ検討しきれていません。
+            この画面をそのまま見せるのか？ 抜粋して、関係する数字とAIの提案から検討経緯までを見せるのか？
+            どこまでの情報を共有すれば、受け手の理解と行動までをスムーズに促進できるか、検討の余地があります。
+          </p>
+        </div>
+
+        <div class="takeaway">
+          <h3>まとめ：作って終わりではなく、改善を続ける</h3>
+          <p>
+            現状把握から意思決定・共有までを1画面に通す形は作れました。一方で、<strong>データの突合精度・情報の見せ方・共有の設計</strong>には
+            改善余地が残ります。実運用で使いながら磨き込んでいきます。
+          </p>
+        </div>
+      </section>
+
+      <footer class="note">
+        販路・商品の売上と粗利（概算）ダッシュボード ＋ AI施策ループ（追加機能）<br />
+        表示数値・取引先名・会議・チャンネルはすべてダミーです。相談／採用／共有の状態はブラウザに保存されます。
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        const shell = document.getElementById("previewShell");
+        const frame = document.getElementById("previewFrame");
+        if (!shell || !frame) return;
+        const LOGICAL_W = 1500;
+        const LOGICAL_H = 980;
+        function fit() {
+          const w = shell.clientWidth;
+          const s = w / LOGICAL_W;
+          frame.style.width = LOGICAL_W + "px";
+          frame.style.height = LOGICAL_H + "px";
+          frame.style.transform = "scale(" + s + ")";
+          shell.style.height = LOGICAL_H * s + "px";
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        frame.addEventListener("load", fit);
+      })();
+    </script>
+  </body>
+</html>

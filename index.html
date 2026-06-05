@@ -1,0 +1,2559 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>販路・商品の売上と粗利（概算）— UIモック</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --line: #e6e8ef;
+        --text: #121722;
+        --muted: #5c6578;
+        --accent: #1e5eff;
+        --accent-soft: #e8efff;
+        --own: #0f766e;
+        --own-soft: #ccfbf1;
+        --ext: #7c3aed;
+        --ext-soft: #ede9fe;
+        --dept: #b45309;
+        --dept-soft: #ffedd5;
+        --other: #0369a1;
+        --other-soft: #e0f2fe;
+        --warn: #b45309;
+        --warn-soft: #fffbeb;
+        --radius: 12px;
+        --shadow: 0 2px 8px rgba(18, 23, 34, 0.06);
+        --sans: "IBM Plex Sans JP", system-ui, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+        --sidebar-w: 230px;
+        --insights-w: 560px;
+        --ai-w: 340px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .topbar {
+        background: var(--card);
+        border-bottom: 1px solid var(--line);
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .title-block h1 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .title-block p {
+        margin: 0.25rem 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+        max-width: 52rem;
+        line-height: 1.5;
+      }
+
+      .badge {
+        display: inline-block;
+        margin-top: 0.35rem;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--accent);
+        background: var(--accent-soft);
+        padding: 0.15rem 0.45rem;
+        border-radius: 999px;
+      }
+
+      .period-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+      }
+
+      .period-label {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .period-tabs {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f8fafc;
+      }
+
+      .period-tabs button {
+        border: none;
+        background: transparent;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted);
+        cursor: pointer;
+        font-family: var(--sans);
+      }
+
+      .period-tabs button.active {
+        background: var(--card);
+        color: var(--text);
+        box-shadow: inset 0 -2px 0 var(--accent);
+      }
+
+      .fiscal-hint {
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-align: right;
+        max-width: 22rem;
+        line-height: 1.45;
+      }
+
+      .layout {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        min-height: 0;
+        min-width: 0;
+      }
+
+      .resize-bar {
+        width: 6px;
+        flex-shrink: 0;
+        cursor: col-resize;
+        background: transparent;
+        align-self: stretch;
+        position: relative;
+        z-index: 6;
+        touch-action: none;
+      }
+
+      .resize-bar::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        left: -2px;
+        right: -2px;
+      }
+
+      .resize-bar:hover,
+      .resize-bar.is-dragging {
+        background: rgba(30, 94, 255, 0.12);
+      }
+
+      body.is-resizing {
+        cursor: col-resize;
+        user-select: none;
+      }
+
+      .layout.sidebar-collapsed .resize-bar.resize-sidebar-main {
+        pointer-events: none;
+        opacity: 0.35;
+      }
+
+      /* 右カラム：ランキング（左）＋ AI（右） */
+      .pane-insights {
+        width: var(--insights-w);
+        min-width: 320px;
+        flex-shrink: 0;
+        background: var(--card);
+        border-left: 1px solid var(--line);
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .insights-split {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        min-width: 0;
+      }
+
+      .insights-split.ai-collapsed {
+        --ai-w: 0px;
+      }
+
+      .insights-split.ai-collapsed .pane-ai {
+        width: 0 !important;
+        min-width: 0 !important;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        border: none !important;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .insights-split.ai-collapsed .resize-bar.resize-rank-ai {
+        display: none;
+      }
+
+      .insights-split.ai-collapsed .pane-right {
+        border-right: none;
+      }
+
+      @media (max-width: 1480px) {
+        .insights-split {
+          flex-direction: column;
+        }
+        .resize-bar.resize-rank-ai {
+          display: none;
+        }
+        .pane-insights .pane-right {
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+        }
+        .pane-ai {
+          width: 100% !important;
+          min-width: 0 !important;
+          border-left: none !important;
+          border-top: 1px solid #e8e0ff;
+        }
+        .insights-split.ai-collapsed .pane-ai {
+          display: none;
+        }
+      }
+
+      @media (max-width: 1320px) {
+        .pane-insights,
+        .resize-bar.resize-main-insights {
+          display: none !important;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .sidebar {
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+        }
+        .layout.sidebar-collapsed {
+          flex-direction: column;
+        }
+      }
+
+      .sidebar {
+        width: var(--sidebar-w);
+        min-width: 0;
+        flex-shrink: 0;
+        background: var(--card);
+        border-right: 1px solid var(--line);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        min-height: 0;
+        overflow: hidden;
+        transition: width 0.22s ease;
+      }
+
+      .sidebar-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0.4rem 0.35rem;
+        border-bottom: 1px solid var(--line);
+        flex-shrink: 0;
+        gap: 0.25rem;
+      }
+
+      .sidebar-body {
+        padding: 0.65rem 0.85rem 0.85rem;
+        overflow: auto;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        min-height: 0;
+      }
+
+      .layout.sidebar-collapsed .sidebar-body {
+        display: none;
+      }
+
+      .pane-head-actions {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .pane-head-actions h2 {
+        margin: 0;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .btn-ghost-sm {
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 8px;
+        padding: 0.25rem 0.45rem;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--muted);
+        cursor: pointer;
+        font-family: var(--sans);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .btn-ghost-sm:hover {
+        border-color: #cbd5e1;
+        color: var(--text);
+      }
+
+      .btn-strip {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        letter-spacing: 0.12em;
+        padding: 0.5rem 0.2rem;
+        min-height: 120px;
+      }
+
+      .layout.sidebar-collapsed .btn-strip-sidebar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn-strip-sidebar {
+        display: none;
+        margin: 0.35rem auto;
+      }
+
+      .side-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .tree-btn {
+        width: 100%;
+        text-align: left;
+        border: 1px solid var(--line);
+        background: #fafbfe;
+        border-radius: 10px;
+        padding: 0.5rem 0.55rem;
+        font-size: 0.82rem;
+        cursor: pointer;
+        font-family: var(--sans);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
+      }
+
+      .tree-btn:hover {
+        border-color: #cfd6ea;
+      }
+
+      .tree-btn.active {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        color: #1e3a8a;
+      }
+
+      .pill {
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 0.1rem 0.35rem;
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      .pill-own {
+        background: var(--own-soft);
+        color: var(--own);
+      }
+      .pill-ext {
+        background: var(--ext-soft);
+        color: #5b21b6;
+      }
+      .pill-dept {
+        background: var(--dept-soft);
+        color: var(--dept);
+      }
+      .pill-oth {
+        background: var(--other-soft);
+        color: #075985;
+      }
+
+      .sub-list {
+        margin: 0.15rem 0 0 0.65rem;
+        padding: 0;
+        list-style: none;
+        border-left: 2px solid var(--line);
+      }
+
+      .sub-list li button {
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        padding: 0.35rem 0.5rem 0.35rem 0.6rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        cursor: pointer;
+        border-radius: 0 8px 8px 0;
+        font-family: var(--sans);
+      }
+
+      .sub-list li button:hover {
+        background: #f1f5f9;
+        color: var(--text);
+      }
+
+      .sub-list li button.active {
+        background: #eef2ff;
+        color: #1e3a8a;
+        font-weight: 600;
+      }
+
+      .main {
+        flex: 1 1 0;
+        min-width: 260px;
+        padding: 0.85rem 1rem 1.25rem;
+        overflow: auto;
+        min-height: 0;
+      }
+
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin-bottom: 0.75rem;
+      }
+
+      @media (min-width: 1500px) {
+        .kpi-row {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      .kpi {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 0.65rem 0.7rem;
+        box-shadow: var(--shadow);
+      }
+
+      .kpi h3 {
+        margin: 0;
+        font-size: 0.72rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .kpi .num {
+        margin: 0.25rem 0 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .kpi .sub {
+        margin: 0.35rem 0 0;
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 280px;
+      }
+
+      .panel-head {
+        padding: 0.55rem 0.75rem;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+
+      .panel-head h2 {
+        margin: 0;
+        font-size: 0.88rem;
+        font-weight: 700;
+      }
+
+      .panel-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+      }
+
+      .panel-tools input[type="search"] {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.78rem;
+        min-width: 180px;
+        font-family: var(--sans);
+      }
+
+      .hint-inline {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .table-scroll {
+        overflow: auto;
+        max-height: min(70vh, 720px);
+      }
+
+      table.grid {
+        width: max(1100px, 100%);
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.76rem;
+      }
+
+      table.grid th,
+      table.grid td {
+        padding: 0.45rem 0.5rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      table.grid th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8fafc;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 0.7rem;
+        border-bottom: 2px solid var(--line);
+      }
+
+      .group-row td {
+        background: #f1f5f9;
+        font-weight: 700;
+        font-size: 0.74rem;
+        border-bottom: 1px solid #dbe0ea;
+        position: sticky;
+        top: 2.05rem;
+        z-index: 1;
+      }
+
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+      }
+
+      .name-cell {
+        white-space: normal;
+        min-width: 200px;
+        max-width: 320px;
+        line-height: 1.35;
+      }
+
+      .flag {
+        display: inline-block;
+        font-size: 0.62rem;
+        font-weight: 800;
+        padding: 0.1rem 0.35rem;
+        border-radius: 6px;
+        background: var(--warn-soft);
+        color: var(--warn);
+        margin-left: 0.25rem;
+        vertical-align: middle;
+      }
+
+      .num-r {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .pos {
+        color: #047857;
+      }
+
+      .neg {
+        color: #b91c1c;
+      }
+
+      footer.note {
+        padding: 0.65rem 1.25rem 1rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.55;
+        border-top: 1px solid var(--line);
+        background: #eef2f7;
+      }
+
+      .pane-right {
+        background: var(--card);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .pane-insights .pane-right {
+        border-left: none;
+        border-right: 1px solid var(--line);
+        flex: 1 1 45%;
+        min-width: 200px;
+      }
+
+      .pane-ai {
+        background: linear-gradient(180deg, #faf8ff 0%, #ffffff 42%);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        border-left: none;
+        width: var(--ai-w);
+        min-width: var(--ai-w);
+        max-width: var(--ai-w);
+        flex-shrink: 0;
+        transition:
+          width 0.2s ease,
+          min-width 0.2s ease,
+          opacity 0.2s ease;
+      }
+
+      @media (min-width: 1481px) {
+        .pane-ai {
+          border-left: 1px solid #e8e0ff;
+        }
+      }
+
+      .pane-right-head {
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid var(--line);
+        flex-shrink: 0;
+      }
+
+      .pane-right-head .pane-head-actions + p,
+      .pane-ai-head .pane-head-actions + p {
+        margin-top: 0.35rem;
+      }
+
+      .pane-right-head h2 {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      .pane-right-head p {
+        margin: 0.3rem 0 0;
+        font-size: 0.7rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .pane-right-scroll {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0.55rem 0.65rem 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .chart-block {
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 0.45rem 0.5rem 0.5rem;
+      }
+
+      .chart-block h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .chart-canvas-wrap {
+        position: relative;
+        height: 188px;
+      }
+
+      .chart-note {
+        font-size: 0.65rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+        line-height: 1.4;
+      }
+
+
+      .pane-ai-head {
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid var(--line);
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(4px);
+      }
+
+      .pane-ai-head .pane-head-actions h2 {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+
+      .pane-ai-head h2 span.ai-tag {
+        font-size: 0.62rem;
+        font-weight: 800;
+        color: #5b21b6;
+        background: #ede9fe;
+        padding: 0.12rem 0.4rem;
+        border-radius: 999px;
+      }
+
+      .pane-ai-head p {
+        margin: 0.3rem 0 0;
+        font-size: 0.7rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .pane-ai-scroll {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0.55rem 0.65rem 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .ai-card {
+        background: #ffffff;
+        border: 1px solid #e6e0f4;
+        border-radius: var(--radius);
+        padding: 0.5rem 0.55rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+
+      .ai-card h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #3730a3;
+      }
+
+      .ai-kv {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.3rem;
+        font-size: 0.68rem;
+        margin: 0 0 0.4rem;
+      }
+
+      .ai-kv div {
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.35rem 0.4rem;
+      }
+
+      .ai-kv label {
+        display: block;
+        font-size: 0.62rem;
+        color: var(--muted);
+        margin-bottom: 0.15rem;
+      }
+
+      .ai-list {
+        margin: 0;
+        padding-left: 1rem;
+        font-size: 0.7rem;
+        line-height: 1.5;
+        color: var(--text);
+      }
+
+      .ai-proposals {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .ai-proposals li {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.45rem 0.5rem;
+        background: #fafbff;
+      }
+
+      .ai-pri {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .ai-pri span.badge-p1 {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .ai-pri span.badge-p2 {
+        background: #ffedd5;
+        color: #9a3412;
+      }
+      .ai-pri span.badge-p3 {
+        background: #e0f2fe;
+        color: #075985;
+      }
+      .ai-pri span.badge-p4 {
+        background: #f1f5f9;
+        color: #475569;
+      }
+
+      .ai-pri span[class^="badge-"] {
+        font-size: 0.62rem;
+        font-weight: 800;
+        padding: 0.1rem 0.35rem;
+        border-radius: 6px;
+      }
+
+      .ai-proposals strong {
+        font-size: 0.76rem;
+      }
+
+      .ai-proposals p {
+        margin: 0.2rem 0 0;
+        font-size: 0.68rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .ai-muted {
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      /* --- AI施策の相談・採用・共有（追加機能） --- */
+      .ai-rev-badge {
+        font-size: 0.6rem;
+        font-weight: 800;
+        color: #1d4ed8;
+        background: #dbeafe;
+        padding: 0.08rem 0.34rem;
+        border-radius: 6px;
+        margin-left: 0.35rem;
+        white-space: nowrap;
+      }
+
+      .status-pill {
+        font-size: 0.6rem;
+        font-weight: 800;
+        padding: 0.08rem 0.34rem;
+        border-radius: 999px;
+        margin-left: 0.35rem;
+        white-space: nowrap;
+      }
+      .status-adopted {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .status-shared {
+        background: #e0f2fe;
+        color: #075985;
+      }
+      .status-agenda {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .ai-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.45rem;
+      }
+
+      .ai-btn {
+        border: 1px solid #d6dbe8;
+        background: #fff;
+        border-radius: 8px;
+        padding: 0.3rem 0.55rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #334155;
+        cursor: pointer;
+        font-family: var(--sans);
+        white-space: nowrap;
+      }
+      .ai-btn:hover {
+        border-color: #b9c2d6;
+        background: #f8fafc;
+      }
+      .ai-btn-primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+      .ai-btn-primary:hover {
+        background: #1a52e0;
+        border-color: #1a52e0;
+      }
+      .ai-btn:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+
+      .ai-chat {
+        border-color: #c7d2fe;
+        background: #f5f7ff;
+      }
+      .ai-chat-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.4rem;
+      }
+      .ai-chat-head h3 {
+        margin: 0;
+        font-size: 0.72rem;
+        color: #3730a3;
+        line-height: 1.3;
+      }
+      .ai-chat-log {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 0.1rem;
+        margin-bottom: 0.45rem;
+      }
+      .ai-msg {
+        font-size: 0.7rem;
+        line-height: 1.45;
+        padding: 0.4rem 0.5rem;
+        border-radius: 10px;
+        max-width: 92%;
+        white-space: pre-wrap;
+      }
+      .ai-msg-ai {
+        background: #fff;
+        border: 1px solid #e6e0f4;
+        align-self: flex-start;
+      }
+      .ai-msg-user {
+        background: var(--accent);
+        color: #fff;
+        align-self: flex-end;
+      }
+      .ai-chat-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-bottom: 0.45rem;
+      }
+      .chip {
+        border: 1px solid #c7d2fe;
+        background: #eef2ff;
+        color: #3730a3;
+        border-radius: 999px;
+        padding: 0.22rem 0.5rem;
+        font-size: 0.66rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--sans);
+      }
+      .chip:hover {
+        background: #e0e7ff;
+      }
+      .ai-chat-form {
+        display: flex;
+        gap: 0.35rem;
+        align-items: flex-end;
+        margin-bottom: 0.4rem;
+      }
+      .ai-chat-form textarea {
+        flex: 1;
+        resize: vertical;
+        min-height: 2.2rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.72rem;
+        font-family: var(--sans);
+      }
+
+      .decision-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .decision-item {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.5rem 0.55rem;
+        background: #fafbff;
+      }
+      .decision-item strong {
+        font-size: 0.76rem;
+      }
+      .decision-item p {
+        margin: 0.25rem 0 0.4rem;
+        font-size: 0.68rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .decision-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.25rem;
+        flex-wrap: wrap;
+      }
+      .decision-meta .status-pill {
+        margin-left: 0;
+      }
+      .decision-time {
+        font-size: 0.64rem;
+        color: var(--muted);
+      }
+      .decision-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-bottom: 0.4rem;
+      }
+      .decision-status .status-pill {
+        margin-left: 0;
+      }
+      .decision-status:empty {
+        display: none;
+      }
+      .decision-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      /* 共有モーダル */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        z-index: 50;
+      }
+      .modal-overlay[hidden] {
+        display: none;
+      }
+      .modal {
+        background: #fff;
+        border-radius: 14px;
+        width: min(560px, 100%);
+        max-height: 90vh;
+        overflow: auto;
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
+      }
+      .modal-head {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+      .modal-head h2 {
+        margin: 0;
+        font-size: 0.95rem;
+      }
+      .modal-body {
+        padding: 0.85rem 1rem 1rem;
+      }
+      .modal-section {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 0.7rem 0.75rem;
+        margin-top: 0.7rem;
+      }
+      .modal-section h3 {
+        margin: 0 0 0.45rem;
+        font-size: 0.82rem;
+      }
+      .modal-label {
+        display: block;
+        font-size: 0.68rem;
+        color: var(--muted);
+        margin: 0.4rem 0 0.2rem;
+      }
+      .modal-select,
+      .modal-textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.45rem 0.55rem;
+        font-size: 0.78rem;
+        font-family: var(--sans);
+      }
+      .modal-textarea {
+        resize: vertical;
+        white-space: pre-wrap;
+      }
+      .modal-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.55rem;
+        flex-wrap: wrap;
+      }
+      .share-result {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #166534;
+      }
+      .meeting-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .meeting-item {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.5rem 0.55rem;
+        font-size: 0.74rem;
+        cursor: pointer;
+      }
+      .meeting-item:hover {
+        border-color: #c7d2fe;
+        background: #f8fafc;
+      }
+      .meeting-item input {
+        margin-top: 0.15rem;
+      }
+      .modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="title-block">
+        <h1>販路・商品の売上と粗利（概算）</h1>
+        <p>
+          自社ECと外部販路（百貨店・その他）に分かれる売上を、<strong>取引先ごと・商品（販路の表記）ごと</strong>に並べます。
+          手数料は<strong>販路の％ルール</strong>から自動計算、原価は<strong>概算</strong>です。税抜売上で統一しています。
+        </p>
+        <span class="badge">HTMLモック · 数値はダミー</span>
+      </div>
+      <div class="period-wrap">
+        <span class="period-label">期間（既定は「月」）</span>
+        <div class="period-tabs" role="tablist" aria-label="期間">
+          <button type="button" data-period="week">週</button>
+          <button type="button" class="active" data-period="month">月</button>
+          <button type="button" data-period="year">会計年度</button>
+          <button type="button" data-period="custom">任意</button>
+        </div>
+        <div class="fiscal-hint" id="fiscalHint">
+          会計年度: <strong>2026年度</strong>（2026/4/1〜2027/3/31）· 表示中:
+          <strong>2026年5月 累計（税抜）</strong>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout" id="appLayout">
+      <aside class="sidebar" aria-label="販路フィルタ">
+        <div class="sidebar-toolbar">
+          <button type="button" class="btn-ghost-sm" id="btnCollapseSidebar" title="左ペインを折りたたむ">◀ 折りたたみ</button>
+        </div>
+        <button type="button" class="btn-ghost-sm btn-strip btn-strip-sidebar" id="btnExpandSidebar" title="左ペインを表示">
+          販路 ▶
+        </button>
+        <div class="sidebar-body">
+        <div class="side-title">販路の見方</div>
+        <button type="button" class="tree-btn active" data-filter="all">
+          <span>すべて表示</span>
+        </button>
+
+        <button type="button" class="tree-btn" data-filter="own">
+          <span>自社EC</span>
+          <span class="pill pill-own">自社</span>
+        </button>
+
+        <div>
+          <button type="button" class="tree-btn" data-filter="ext">
+            <span>外部販路（約10社）</span>
+            <span class="pill pill-ext">外部</span>
+          </button>
+          <ul class="sub-list" id="extSub">
+            <li>
+              <button type="button" data-filter="dept" class="active">百貨店（6〜7社）</button>
+            </li>
+            <li>
+              <button type="button" data-filter="other">その他（2〜3社）</button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="side-title" style="margin-top: 0.25rem">取引先</div>
+        <label class="muted" style="font-size: 0.72rem" for="partnerSelect">外部販路のときに絞り込み</label>
+        <select id="partnerSelect" style="width: 100%; padding: 0.4rem; border-radius: 8px; border: 1px solid var(--line); font-size: 0.78rem">
+          <option value="all">すべての取引先</option>
+          <optgroup label="百貨店">
+            <option value="mitsukoshi">三越（ダミー）</option>
+            <option value="isetan">伊勢丹（ダミー）</option>
+            <option value="takashimaya">高島屋（ダミー）</option>
+            <option value="hankyu">阪急（ダミー）</option>
+            <option value="tokyu">東急（ダミー）</option>
+            <option value="matsuya">松屋（ダミー）</option>
+          </optgroup>
+          <optgroup label="その他外部">
+            <option value="mallA">大型モールA（ダミー）</option>
+            <option value="mallB">大型モールB（ダミー）</option>
+            <option value="wholesale">卸パートナー（ダミー）</option>
+          </optgroup>
+        </select>
+
+        <p class="muted" style="font-size: 0.7rem; line-height: 1.45; margin: 0">
+          外部販路は「百貨店／その他」に分岐し、取引先は月ごとに増減してもよい想定です。
+        </p>
+        </div>
+      </aside>
+
+      <div class="resize-bar resize-sidebar-main" data-resize="sidebar-main" title="ドラッグで幅調整"></div>
+
+      <main class="main">
+        <section class="kpi-row" aria-label="サマリー">
+          <article class="kpi">
+            <h3>自社EC（税抜売上）</h3>
+            <p class="num" id="kpiOwn">¥12,480,000</p>
+            <p class="sub">前月比 <span class="pos">+6.2%</span> · 前年同月比 <span class="pos">+18.4%</span></p>
+          </article>
+          <article class="kpi">
+            <h3>外部 · 百貨店（税抜売上）</h3>
+            <p class="num" id="kpiDept">¥8,920,000</p>
+            <p class="sub">前月比 <span class="neg">−2.1%</span> · 前年同月比 <span class="pos">+4.0%</span></p>
+          </article>
+          <article class="kpi">
+            <h3>外部 · その他（税抜売上）</h3>
+            <p class="num" id="kpiOther">¥3,105,000</p>
+            <p class="sub">前月比 <span class="pos">+9.8%</span> · 前年同月比 <span class="neg">−1.3%</span></p>
+          </article>
+          <article class="kpi">
+            <h3>粗利（概算）合計</h3>
+            <p class="num" id="kpiGp">¥9,010,000</p>
+            <p class="sub">手数料は％から自動計算 · 原価は概算シート連携</p>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>一覧：販路 × 商品（販路の商品名）</h2>
+            <div class="panel-tools">
+              <input type="search" id="q" placeholder="商品名・IDで検索…" />
+              <span class="hint-inline">列は横スクロール</span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="grid" id="grid">
+              <thead>
+                <tr>
+                  <th>大分類</th>
+                  <th>中分類</th>
+                  <th>取引先</th>
+                  <th>商品名（販路表記）</th>
+                  <th>社内商品ID</th>
+                  <th>販路商品ID</th>
+                  <th>売上（税抜）</th>
+                  <th>個数</th>
+                  <th>手数料率</th>
+                  <th>手数料（円）</th>
+                  <th>原価（概算）</th>
+                  <th>粗利（概算）</th>
+                  <th>売上 前月比</th>
+                  <th>売上 前年同月比</th>
+                  <th>粗利 前月比</th>
+                  <th>粗利 前年同月比</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <div class="resize-bar resize-main-insights" data-resize="main-insights" title="ドラッグで中央と右の幅を調整"></div>
+
+      <section class="pane-insights" aria-label="商品ランキングとAI">
+        <div class="insights-split" id="insightsSplit">
+          <aside class="pane-right" aria-label="商品軸ランキング">
+            <div class="pane-right-head">
+              <div class="pane-head-actions">
+                <h2>商品軸（ランキング）</h2>
+                <button type="button" class="btn-ghost-sm" id="btnExpandAi" title="AIペインを再表示" hidden>◀ AI表示</button>
+              </div>
+              <p id="rankPeriodNote">
+                上部の<strong>期間</strong>と<strong>左の絞り込み</strong>に連動（モック）。表示中の明細から社内商品ID単位に集計し、棒グラフで Top5 を表示します。
+              </p>
+            </div>
+            <div class="pane-right-scroll">
+              <div class="chart-block">
+                <h3>売上 Top5（税抜）</h3>
+                <div class="chart-canvas-wrap">
+                  <canvas id="chartSales" aria-label="売上ランキング"></canvas>
+                </div>
+                <p class="chart-note">横棒＝売上規模。ラベルは短縮表示（ツールチップで全文想定）。</p>
+              </div>
+              <div class="chart-block">
+                <h3>粗利（概算）Top5</h3>
+                <div class="chart-canvas-wrap">
+                  <canvas id="chartProfit" aria-label="粗利ランキング"></canvas>
+                </div>
+                <p class="chart-note">粗利は中央ペインと同じ定義（概算原価・％手数料）。</p>
+              </div>
+            </div>
+          </aside>
+
+          <div class="resize-bar resize-rank-ai" data-resize="rank-ai" title="ランキングとAIの境界をドラッグ"></div>
+
+          <aside class="pane-ai" aria-label="AI分析と施策案">
+            <div class="pane-ai-head">
+              <div class="pane-head-actions">
+                <h2><span class="ai-tag">AI</span> 分析・施策（モック）</h2>
+                <button type="button" class="btn-ghost-sm" id="btnCollapseAi" title="AIペインを折りたたむ">折りたたみ ▶</button>
+              </div>
+              <p id="aiContextNote">
+                表示中の期間・絞り込み・ランキングと同じ集計を入力に、コメントと施策案を生成する想定です（本番はLLM/API接続）。
+              </p>
+            </div>
+            <div class="pane-ai-scroll" id="aiPaneContent"></div>
+          </aside>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-overlay" id="shareModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+        <div class="modal-head">
+          <h2 id="shareModalTitle">施策をチームに共有（モック）</h2>
+          <button type="button" class="btn-ghost-sm" id="shareModalClose">✕ 閉じる</button>
+        </div>
+        <div class="modal-body" id="shareModalBody"></div>
+      </div>
+    </div>
+
+    <footer class="note">
+      <strong>このモックについて：</strong>
+      表示数値・取引先名はすべてダミーです。<strong>粗利（概算）</strong>は、税抜売上から手数料（％ルール）と概算原価を引いたイメージです。
+      <strong>推定</strong>バッジは、販路商品IDが未記入の行を、社内の正式商品一覧（辞書）と商品名から自動で結合した想定です（運用で販路側シートの精度を上げる前提）。
+      レイアウトは<strong>3カラム</strong>（販路ナビ／明細一覧／右カラム）で、右カラム内を<strong>商品ランキング＋AI</strong>の横並びにしています（狭い画面では縦積み、さらに狭いと右カラムごと非表示）。
+      <strong>左端・AI欄は折りたたみボタン</strong>、各境界は<strong>ドラッグで幅調整</strong>できます（設定はブラウザのローカル保存モック）。
+      期間タブ切替時は、グラフとAI欄の<strong>スケールのみ</strong>モック変更し、一覧表の数値は据え置きです。AI欄の文章は<strong>ルールベースの固定テンプレ</strong>です。
+      AI欄では各施策を<strong>「AIと相談」してブラッシュアップ</strong>（改訂版に反映）、<strong>「採用」して決定履歴に記録</strong>（次回提案へ申し送り）、<strong>「チームに共有」でSlack送信＋会議アジェンダ追加</strong>を行えます。
+      相談・採用・共有はすべて<strong>モック</strong>で、状態はブラウザに保存されます。本番では<strong>LLM API</strong>（相談文の生成）、<strong>Slack API</strong>・<strong>カレンダーAPI</strong>（共有・アジェンダ追加）への接続が必要です。
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+    <script>
+      (function () {
+        const tbody = document.getElementById("tbody");
+        const q = document.getElementById("q");
+        const partnerSelect = document.getElementById("partnerSelect");
+        const rankPeriodNote = document.getElementById("rankPeriodNote");
+        const aiPaneContent = document.getElementById("aiPaneContent");
+        const aiContextNote = document.getElementById("aiContextNote");
+        const shareModal = document.getElementById("shareModal");
+        const shareModalBody = document.getElementById("shareModalBody");
+        const shareModalClose = document.getElementById("shareModalClose");
+        const fiscalHint = document.getElementById("fiscalHint");
+        const appLayout = document.getElementById("appLayout");
+        const insightsSplit = document.getElementById("insightsSplit");
+        const btnCollapseSidebar = document.getElementById("btnCollapseSidebar");
+        const btnExpandSidebar = document.getElementById("btnExpandSidebar");
+        const btnCollapseAi = document.getElementById("btnCollapseAi");
+        const btnExpandAi = document.getElementById("btnExpandAi");
+        const periodTabs = document.querySelectorAll(".period-tabs button");
+        const treeBtns = document.querySelectorAll(".tree-btn");
+        const subBtns = document.querySelectorAll(".sub-list button");
+
+        let period = "month";
+        let treeFilter = "all";
+        let subFilter = "dept";
+
+        // --- AI施策の相談・採用・共有（追加機能の状態） ---
+        let aiChatThreads = {};
+        let aiRevisions = {};
+        let aiDecisions = [];
+        let aiActiveSlot = null;
+        let currentProposalsBySlot = {};
+
+        const MOCK_CHANNELS = ["#sales-review", "#management", "#ec-team"];
+        const MOCK_MEETINGS = [
+          { id: "m1", title: "週次販売レビュー", when: "毎週月曜 10:00–10:30", rec: true },
+          { id: "m2", title: "月次経営会議", when: "6/10(水) 14:00–15:00" },
+          { id: "m3", title: "販路戦略MTG", when: "6/12(金) 16:00–16:45" },
+        ];
+
+        const LENS = {
+          specific: {
+            label: "もっと具体的に",
+            reply: "より具体的な実行ステップに落とし込みました。",
+            add: "実行ステップ: ①対象を1SKU・1販路に限定 ②今週中に着手 ③担当と期限を明記 ④翌週の数字でレビュー。",
+          },
+          cost: {
+            label: "コスト/工数を抑えたい",
+            reply: "コスト・工数を抑える方向で具体化しました。まずは無料〜低工数で検証できる形に絞っています。",
+            add: "低コスト版: 既存の在庫・素材を流用し新規制作費ゼロで開始、工数は1人日以内に収める。",
+          },
+          risk: {
+            label: "リスクと対策を知りたい",
+            reply: "想定リスクと対策を補強しました。",
+            add: "リスクと対策: ①在庫切れ→上限数を先に設定 ②値引き乱発→割引は1回・期間限定 ③効果不明→KPIを事前定義。",
+          },
+          kpi: {
+            label: "成功指標(KPI)を付けたい",
+            reply: "成功の判定基準（KPI）を追加しました。",
+            add: "成功指標: 対象SKUの粗利率+2pt／週次売上+10%を2週間で判定し、未達なら撤退。",
+          },
+          speed: {
+            label: "今週から動ける形にしたい",
+            reply: "スピード重視で、今週から動ける最小単位に分解しました。",
+            add: "最小実行: 今週は告知文の差し替えのみ。反応を見て来週に価格・セットを検討。",
+          },
+        };
+
+        const rows = [
+          {
+            major: "自社EC",
+            mid: "自社",
+            partner: "自社EC",
+            partnerId: "own",
+            majorCat: "own",
+            midCat: "own",
+            name: "【冷凍】ミールキット：西京焼きセット（2人前）",
+            internalId: "PMK-000812",
+            channelPid: "EC-882930",
+            sales: 2840000,
+            units: 620,
+            feeRate: 0.0,
+            cost: 1520000,
+            salesMom: 4.2,
+            salesYoy: 11.0,
+            gpMom: 3.1,
+            gpYoy: 9.8,
+            inferred: false,
+          },
+          {
+            major: "自社EC",
+            mid: "自社",
+            partner: "自社EC",
+            partnerId: "own",
+            majorCat: "own",
+            midCat: "own",
+            name: "【お取り寄せ】スパイスカレーまん（3種）",
+            internalId: "PMK-000901",
+            channelPid: "EC-991200",
+            sales: 1980000,
+            units: 880,
+            feeRate: 0.0,
+            cost: 990000,
+            salesMom: 8.9,
+            salesYoy: 22.4,
+            gpMom: 10.2,
+            gpYoy: 24.1,
+            inferred: false,
+          },
+          {
+            major: "外部販路",
+            mid: "百貨店",
+            partner: "三越（ダミー）",
+            partnerId: "mitsukoshi",
+            majorCat: "ext",
+            midCat: "dept",
+            name: "百貨店限定：おせち詰合せ（小型）",
+            internalId: "PMK-000120",
+            channelPid: "MST-22019",
+            sales: 3120000,
+            units: 156,
+            feeRate: 0.22,
+            cost: 1680000,
+            salesMom: -3.4,
+            salesYoy: 1.2,
+            gpMom: -4.8,
+            gpYoy: -0.6,
+            inferred: false,
+          },
+          {
+            major: "外部販路",
+            mid: "百貨店",
+            partner: "伊勢丹（ダミー）",
+            partnerId: "isetan",
+            majorCat: "ext",
+            midCat: "dept",
+            name: "催事：炭火鶏の親子丼の素（冷凍）",
+            internalId: "PMK-000334",
+            channelPid: "",
+            sales: 980000,
+            units: 410,
+            feeRate: 0.25,
+            cost: 520000,
+            salesMom: 2.0,
+            salesYoy: 6.7,
+            gpMom: 1.1,
+            gpYoy: 5.9,
+            inferred: true,
+          },
+          {
+            major: "外部販路",
+            mid: "百貨店",
+            partner: "高島屋（ダミー）",
+            partnerId: "takashimaya",
+            majorCat: "ext",
+            midCat: "dept",
+            name: "店頭：黒毛和牛のしゃぶしゃぶセット",
+            internalId: "PMK-000512",
+            channelPid: "TKY-77812",
+            sales: 2680000,
+            units: 92,
+            feeRate: 0.21,
+            cost: 1520000,
+            salesMom: 1.5,
+            salesYoy: 3.3,
+            gpMom: 0.8,
+            gpYoy: 2.9,
+            inferred: false,
+          },
+          {
+            major: "外部販路",
+            mid: "その他外部",
+            partner: "大型モールA（ダミー）",
+            partnerId: "mallA",
+            majorCat: "ext",
+            midCat: "other",
+            name: "モール共通：花椒麻婆ミールキット（豆腐なし）",
+            internalId: "PMK-000401",
+            channelPid: "MLA-009812",
+            sales: 1450000,
+            units: 530,
+            feeRate: 0.12,
+            cost: 780000,
+            salesMom: 12.4,
+            salesYoy: 30.1,
+            gpMom: 11.0,
+            gpYoy: 28.8,
+            inferred: false,
+          },
+          {
+            major: "外部販路",
+            mid: "その他外部",
+            partner: "卸パートナー（ダミー）",
+            partnerId: "wholesale",
+            majorCat: "ext",
+            midCat: "other",
+            name: "業務用：鶏白湯スープベース（5袋）",
+            internalId: "PMK-000220",
+            channelPid: "",
+            sales: 720000,
+            units: 2400,
+            feeRate: 0.08,
+            cost: 410000,
+            salesMom: -6.0,
+            salesYoy: -4.2,
+            gpMom: -7.1,
+            gpYoy: -5.5,
+            inferred: true,
+          },
+        ];
+
+        function yen(n) {
+          return "¥" + Math.round(n).toLocaleString("ja-JP");
+        }
+
+        function pctCell(v) {
+          const cls = v >= 0 ? "pos" : "neg";
+          const sign = v >= 0 ? "+" : "";
+          return `<span class="${cls}">${sign}${v.toFixed(1)}%</span>`;
+        }
+
+        function feeAmount(r) {
+          return r.sales * r.feeRate;
+        }
+
+        function gp(r) {
+          return r.sales - feeAmount(r) - r.cost;
+        }
+
+        function passesTree(r) {
+          if (treeFilter === "all") return true;
+          if (treeFilter === "own") return r.majorCat === "own";
+          if (treeFilter === "ext") {
+            if (subFilter === "dept") return r.midCat === "dept";
+            if (subFilter === "other") return r.midCat === "other";
+            return r.majorCat === "ext";
+          }
+          return true;
+        }
+
+        function passesPartner(r) {
+          const v = partnerSelect.value;
+          if (v === "all") return true;
+          return r.partnerId === v;
+        }
+
+        function periodScale() {
+          if (period === "week") return 0.22;
+          if (period === "year") return 7.5;
+          return 1;
+        }
+
+        function passesSearch(r, query) {
+          if (!query) return true;
+          const hay = (r.name + r.internalId + (r.channelPid || "") + r.partner).toLowerCase();
+          return hay.includes(query);
+        }
+
+        function filteredRowsForCharts() {
+          const query = q.value.trim().toLowerCase();
+          return rows.filter((r) => passesTree(r) && passesPartner(r) && passesSearch(r, query));
+        }
+
+        function aggregateBySku(list) {
+          const map = new Map();
+          list.forEach((r) => {
+            const key = r.internalId;
+            const gpv = gp(r);
+            if (!map.has(key)) {
+              map.set(key, { label: r.name, id: key, sales: 0, gp: 0 });
+            }
+            const o = map.get(key);
+            o.sales += r.sales;
+            o.gp += gpv;
+          });
+          return [...map.values()];
+        }
+
+        let chartSalesInst = null;
+        let chartProfitInst = null;
+
+        let sidebarExpandedW = 230;
+        /** @type {{ mode: string; startX: number; origSidebar: number; origInsights: number; origAi: number } | null} */
+        let dragState = null;
+
+        function readPxVar(name, fallback) {
+          const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+          const n = parseFloat(raw);
+          return Number.isFinite(n) ? n : fallback;
+        }
+
+        function setPxVar(name, px) {
+          document.documentElement.style.setProperty(name, `${Math.round(px)}px`);
+        }
+
+        function saveLayoutPrefs() {
+          const j = {
+            sidebarExpandedW,
+            insightsW: readPxVar("--insights-w", 560),
+            aiW: readPxVar("--ai-w", 340),
+            sidebarCollapsed: !!appLayout?.classList.contains("sidebar-collapsed"),
+            aiCollapsed: !!insightsSplit?.classList.contains("ai-collapsed"),
+          };
+          try {
+            localStorage.setItem("pnl_layout_v1", JSON.stringify(j));
+          } catch (_) {}
+        }
+
+        function loadLayoutPrefs() {
+          try {
+            const s = localStorage.getItem("pnl_layout_v1");
+            if (!s) return;
+            const j = JSON.parse(s);
+            if (typeof j.sidebarExpandedW === "number") sidebarExpandedW = j.sidebarExpandedW;
+            if (typeof j.insightsW === "number") setPxVar("--insights-w", j.insightsW);
+            if (typeof j.aiW === "number") setPxVar("--ai-w", j.aiW);
+            if (j.sidebarCollapsed) {
+              appLayout?.classList.add("sidebar-collapsed");
+              setPxVar("--sidebar-w", 44);
+            } else if (typeof j.sidebarExpandedW === "number") {
+              setPxVar("--sidebar-w", j.sidebarExpandedW);
+            }
+            if (j.aiCollapsed) insightsSplit?.classList.add("ai-collapsed");
+          } catch (_) {}
+        }
+
+        function resizeChartsSoon() {
+          requestAnimationFrame(() => {
+            try {
+              chartSalesInst?.resize();
+              chartProfitInst?.resize();
+            } catch (_) {}
+          });
+        }
+
+        // --- AI施策の状態：保存・復元 ---
+        function saveAiState() {
+          try {
+            localStorage.setItem(
+              "pnl_ai_state_v1",
+              JSON.stringify({ chat: aiChatThreads, rev: aiRevisions, dec: aiDecisions, active: aiActiveSlot })
+            );
+          } catch (_) {}
+        }
+
+        function loadAiState() {
+          try {
+            const s = localStorage.getItem("pnl_ai_state_v1");
+            if (!s) return;
+            const j = JSON.parse(s);
+            if (j.chat && typeof j.chat === "object") aiChatThreads = j.chat;
+            if (j.rev && typeof j.rev === "object") aiRevisions = j.rev;
+            if (Array.isArray(j.dec)) aiDecisions = j.dec;
+            if (typeof j.active === "string") aiActiveSlot = j.active;
+          } catch (_) {}
+        }
+
+        function fmtDateTime(d) {
+          const pad = (n) => String(n).padStart(2, "0");
+          return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        // --- ①AIと相談してブラッシュアップ ---
+        function pushMsg(slot, role, text) {
+          if (!aiChatThreads[slot]) aiChatThreads[slot] = [];
+          aiChatThreads[slot].push({ role, text });
+        }
+
+        function detectLens(text) {
+          const t = String(text).toLowerCase();
+          if (/(コスト|費用|予算|工数|安く|抑え)/.test(t)) return "cost";
+          if (/(リスク|危険|不安|失敗|懸念)/.test(t)) return "risk";
+          if (/(kpi|指標|効果|測定|数値|目標|判定)/.test(t)) return "kpi";
+          if (/(早く|急ぎ|スピード|今週|すぐ|短期)/.test(t)) return "speed";
+          return "specific";
+        }
+
+        function applyRevision(slot, lens) {
+          const cur = currentProposalsBySlot[slot] || {};
+          const prev = aiRevisions[slot];
+          const base = (prev && prev.body) || cur.body || "";
+          const conf = LENS[lens] || LENS.specific;
+          const newBody = base.includes(conf.add) ? base : `${base} ${conf.add}`;
+          const prevV = (prev && prev.version) || cur.version || 1;
+          aiRevisions[slot] = {
+            title: (prev && prev.title) || cur.title || "",
+            body: newBody,
+            version: prevV + 1,
+          };
+          return conf.reply;
+        }
+
+        function applyLens(slot, lens) {
+          aiActiveSlot = slot;
+          const conf = LENS[lens] || LENS.specific;
+          pushMsg(slot, "user", conf.label);
+          const reply = applyRevision(slot, lens);
+          pushMsg(slot, "ai", `${reply}（改訂案 v${aiRevisions[slot].version} に反映しました）`);
+          saveAiState();
+          updateAiPane();
+          scrollChatIntoView();
+        }
+
+        function sendChat(slot, text) {
+          aiActiveSlot = slot;
+          pushMsg(slot, "user", text);
+          const lens = detectLens(text);
+          const reply = applyRevision(slot, lens);
+          pushMsg(slot, "ai", `${reply}（改訂案 v${aiRevisions[slot].version} に反映しました）`);
+          saveAiState();
+          updateAiPane();
+          scrollChatIntoView();
+        }
+
+        function scrollChatIntoView() {
+          requestAnimationFrame(() => {
+            const log = aiPaneContent?.querySelector(".ai-chat-log");
+            if (log) log.scrollTop = log.scrollHeight;
+          });
+        }
+
+        // --- ②採用の決定と履歴 ---
+        function adoptProposal(slot) {
+          const p = currentProposalsBySlot[slot];
+          if (!p) return;
+          if (aiDecisions.some((d) => d.slot === slot)) return;
+          const now = new Date();
+          aiDecisions.push({
+            id: "d" + Date.now(),
+            slot,
+            pri: p.pri,
+            title: p.title,
+            body: p.body,
+            version: p.version || 1,
+            ts: now.toISOString(),
+            tsLabel: fmtDateTime(now),
+            sharedSlack: false,
+            slackChannel: null,
+            agendaMeeting: null,
+          });
+          saveAiState();
+          updateAiPane();
+        }
+
+        function undoDecision(id) {
+          aiDecisions = aiDecisions.filter((d) => d.id !== id);
+          saveAiState();
+          updateAiPane();
+        }
+
+        // --- ③Slack共有＋会議アジェンダ追加（モック） ---
+        function openShareModal(id) {
+          const d = aiDecisions.find((x) => x.id === id);
+          if (!d || !shareModal || !shareModalBody) return;
+          const channelOpts = MOCK_CHANNELS.map(
+            (c, i) => `<option value="${c}" ${i === 0 ? "selected" : ""}>${c}</option>`
+          ).join("");
+          const meetingOpts = MOCK_MEETINGS.map(
+            (m) => `
+            <label class="meeting-item">
+              <input type="radio" name="meeting" value="${m.id}" ${m.rec ? "checked" : ""} />
+              <span><strong>${escHtml(m.title)}</strong><br /><span class="ai-muted">${escHtml(m.when)}${m.rec ? " ・AI推奨" : ""}</span></span>
+            </label>`
+          ).join("");
+          const preview = `【施策決定の共有】\n${d.pri}: ${d.title}\n${d.body}\n— 採用日時: ${d.tsLabel}（販路・粗利モックより）`;
+          shareModalBody.innerHTML = `
+            <p class="ai-muted">この画面は<strong>モック</strong>です。実際の送信は行いません。本番では Slack API（chat.postMessage / Incoming Webhook）と カレンダーAPI（Google Calendar / Microsoft Graph）に接続します。</p>
+            <div class="modal-section">
+              <h3>1. Slackで共有</h3>
+              <label class="modal-label">送信先チャンネル</label>
+              <select id="slackChannel" class="modal-select">${channelOpts}</select>
+              <label class="modal-label">メッセージ内容（編集可）</label>
+              <textarea id="slackMsg" class="modal-textarea" rows="5">${escHtml(preview)}</textarea>
+              <div class="modal-actions">
+                <button type="button" class="ai-btn ai-btn-primary" id="btnDoSlack">Slackに送信（モック）</button>
+                <span id="slackResult" class="share-result">${
+                  d.sharedSlack ? `✓ ${escHtml(d.slackChannel || "")} に送信済み` : ""
+                }</span>
+              </div>
+            </div>
+            <div class="modal-section">
+              <h3>2. カレンダーの会議アジェンダに追加</h3>
+              <p class="ai-muted" style="margin: 0.2rem 0 0.4rem">直近の会議を読み込みました（モック）。施策内容から関連度の高い会議をAIが推奨選択しています。</p>
+              <div class="meeting-list">${meetingOpts}</div>
+              <div class="modal-actions">
+                <button type="button" class="ai-btn ai-btn-primary" id="btnDoAgenda">選択した会議のアジェンダに追加（モック）</button>
+                <span id="agendaResult" class="share-result">${
+                  d.agendaMeeting ? "✓ 追加済み: " + escHtml(d.agendaMeeting) : ""
+                }</span>
+              </div>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="ai-btn ai-btn-primary" id="btnShareDone">完了</button>
+            </div>`;
+          shareModal.hidden = false;
+
+          document.getElementById("btnDoSlack")?.addEventListener("click", () => {
+            const ch = document.getElementById("slackChannel")?.value || MOCK_CHANNELS[0];
+            d.sharedSlack = true;
+            d.slackChannel = ch;
+            saveAiState();
+            const r = document.getElementById("slackResult");
+            if (r) r.textContent = `✓ ${ch} に送信しました（モック）`;
+          });
+          document.getElementById("btnDoAgenda")?.addEventListener("click", () => {
+            const sel = shareModalBody.querySelector('input[name="meeting"]:checked');
+            const m = MOCK_MEETINGS.find((x) => x.id === sel?.value);
+            if (!m) return;
+            d.agendaMeeting = `${m.title}（${m.when}）`;
+            saveAiState();
+            const r = document.getElementById("agendaResult");
+            if (r) r.textContent = `✓ 追加しました: ${m.title}`;
+          });
+          document.getElementById("btnShareDone")?.addEventListener("click", closeShareModal);
+        }
+
+        function closeShareModal() {
+          if (shareModal) shareModal.hidden = true;
+          updateAiPane();
+        }
+
+        function renderActiveChatHtml() {
+          if (!aiActiveSlot) return "";
+          const p = currentProposalsBySlot[aiActiveSlot];
+          if (!p) return "";
+          const thread = aiChatThreads[aiActiveSlot] || [];
+          const msgs = thread.length
+            ? thread.map((m) => `<div class="ai-msg ai-msg-${m.role === "user" ? "user" : "ai"}">${escHtml(m.text)}</div>`).join("")
+            : '<div class="ai-msg ai-msg-ai">この施策について相談できます。下のボタン、または自由入力で、ブラッシュアップの方向を教えてください。</div>';
+          const chips = Object.keys(LENS)
+            .map(
+              (k) =>
+                `<button type="button" class="chip" data-action="chip" data-slot="${aiActiveSlot}" data-lens="${k}">${escHtml(LENS[k].label)}</button>`
+            )
+            .join("");
+          return `
+            <section class="ai-card ai-chat">
+              <div class="ai-chat-head">
+                <h3>相談：${escHtml(p.pri)} ${escHtml(p.title)}</h3>
+                <button type="button" class="ai-btn" data-action="close-chat">閉じる</button>
+              </div>
+              <div class="ai-chat-log">${msgs}</div>
+              <div class="ai-chat-chips">${chips}</div>
+              <form class="ai-chat-form" data-slot="${aiActiveSlot}">
+                <textarea rows="2" placeholder="例: 予算は抑えめで、来週レビューしたい…"></textarea>
+                <button type="submit" class="ai-btn ai-btn-primary">送信</button>
+              </form>
+              <p class="ai-muted" style="margin: 0">※返答はルールベースの固定テンプレ（モック）。本番はLLM/APIに、表示中の集計と決定履歴を渡して生成します。</p>
+            </section>`;
+        }
+
+        function renderDecisionsHtml() {
+          if (!aiDecisions.length) {
+            return `
+            <section class="ai-card">
+              <h3>決定履歴（採用した施策）</h3>
+              <p class="ai-muted" style="margin: 0">まだ採用された施策はありません。各施策の「この施策を採用」を押すと、ここに決定が記録され、AIの次回提案にも反映されます（モック）。</p>
+            </section>`;
+          }
+          const items = aiDecisions
+            .slice()
+            .reverse()
+            .map((d) => {
+              const shared = d.sharedSlack ? '<span class="status-pill status-shared">Slack共有済</span>' : "";
+              const agenda = d.agendaMeeting ? '<span class="status-pill status-agenda">アジェンダ追加済</span>' : "";
+              return `
+              <li class="decision-item">
+                <div class="decision-meta">
+                  <span class="status-pill status-adopted">${escHtml(d.pri)} 採用</span>
+                  <span class="decision-time">${escHtml(d.tsLabel)}</span>
+                </div>
+                <strong>${escHtml(d.title)}</strong>
+                <p>${escHtml(d.body)}</p>
+                <div class="decision-status">${shared}${agenda}</div>
+                <div class="decision-actions">
+                  <button type="button" class="ai-btn ai-btn-primary" data-action="share" data-id="${d.id}">チームに共有</button>
+                  <button type="button" class="ai-btn" data-action="undo" data-id="${d.id}">採用を取消</button>
+                </div>
+              </li>`;
+            })
+            .join("");
+          return `
+            <section class="ai-card">
+              <h3>決定履歴（採用した施策・${aiDecisions.length}件）</h3>
+              <ol class="decision-list">${items}</ol>
+            </section>`;
+        }
+
+        function syncAiChrome() {
+          const collapsed = !!insightsSplit?.classList.contains("ai-collapsed");
+          if (btnCollapseAi) btnCollapseAi.hidden = collapsed;
+          if (btnExpandAi) btnExpandAi.hidden = !collapsed;
+        }
+
+        btnCollapseSidebar?.addEventListener("click", () => {
+          if (!appLayout) return;
+          if (!appLayout.classList.contains("sidebar-collapsed")) {
+            sidebarExpandedW = readPxVar("--sidebar-w", sidebarExpandedW);
+            setPxVar("--sidebar-w", 44);
+            appLayout.classList.add("sidebar-collapsed");
+          }
+          saveLayoutPrefs();
+          resizeChartsSoon();
+        });
+
+        btnExpandSidebar?.addEventListener("click", () => {
+          if (!appLayout) return;
+          appLayout.classList.remove("sidebar-collapsed");
+          setPxVar("--sidebar-w", sidebarExpandedW);
+          saveLayoutPrefs();
+          resizeChartsSoon();
+        });
+
+        btnCollapseAi?.addEventListener("click", () => {
+          insightsSplit?.classList.add("ai-collapsed");
+          syncAiChrome();
+          saveLayoutPrefs();
+          resizeChartsSoon();
+        });
+
+        btnExpandAi?.addEventListener("click", () => {
+          insightsSplit?.classList.remove("ai-collapsed");
+          syncAiChrome();
+          saveLayoutPrefs();
+          resizeChartsSoon();
+        });
+
+        document.querySelectorAll(".resize-bar").forEach((bar) => {
+          bar.addEventListener("mousedown", (e) => {
+            if (e.button !== 0) return;
+            const mode = bar.dataset.resize;
+            if (mode === "sidebar-main" && appLayout?.classList.contains("sidebar-collapsed")) return;
+            if (mode === "rank-ai" && window.innerWidth <= 1480) return;
+            e.preventDefault();
+            dragState = {
+              mode,
+              startX: e.clientX,
+              origSidebar: readPxVar("--sidebar-w", 230),
+              origInsights: readPxVar("--insights-w", 560),
+              origAi: readPxVar("--ai-w", 340),
+            };
+            bar.classList.add("is-dragging");
+            document.body.classList.add("is-resizing");
+          });
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!dragState) return;
+          const dx = e.clientX - dragState.startX;
+          if (dragState.mode === "sidebar-main") {
+            const nw = Math.min(480, Math.max(180, dragState.origSidebar + dx));
+            setPxVar("--sidebar-w", nw);
+            sidebarExpandedW = nw;
+          } else if (dragState.mode === "main-insights") {
+            const nw = Math.min(960, Math.max(360, dragState.origInsights - dx));
+            setPxVar("--insights-w", nw);
+          } else if (dragState.mode === "rank-ai") {
+            const nw = Math.min(580, Math.max(260, dragState.origAi + dx));
+            setPxVar("--ai-w", nw);
+          }
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (!dragState) return;
+          document.querySelectorAll(".resize-bar.is-dragging").forEach((b) => b.classList.remove("is-dragging"));
+          document.body.classList.remove("is-resizing");
+          dragState = null;
+          saveLayoutPrefs();
+          resizeChartsSoon();
+        });
+
+        function shortLabel(s, max) {
+          const m = max || 16;
+          if (s.length <= m) return s;
+          return s.slice(0, m - 1) + "…";
+        }
+
+        function yenAxis(v) {
+          const n = Number(v);
+          if (!Number.isFinite(n)) return "";
+          const x = Math.abs(n);
+          if (x >= 1e8) return (n / 1e8).toFixed(1) + "億";
+          if (x >= 1e4) return (n / 1e4).toFixed(0) + "万";
+          return Math.round(n).toLocaleString("ja-JP");
+        }
+
+        function getScaledAgg() {
+          const sc = periodScale();
+          return aggregateBySku(filteredRowsForCharts()).map((x) => ({
+            ...x,
+            sales: x.sales * sc,
+            gp: x.gp * sc,
+          }));
+        }
+
+        function updateRankCharts() {
+          if (typeof Chart === "undefined") return;
+          const agg = getScaledAgg();
+          const topSales = [...agg].sort((a, b) => b.sales - a.sales).slice(0, 5);
+          const topGp = [...agg].sort((a, b) => b.gp - a.gp).slice(0, 5);
+
+          if (chartSalesInst) {
+            chartSalesInst.destroy();
+            chartSalesInst = null;
+          }
+          if (chartProfitInst) {
+            chartProfitInst.destroy();
+            chartProfitInst = null;
+          }
+
+          if (!topSales.length) {
+            if (rankPeriodNote) {
+              rankPeriodNote.innerHTML =
+                "表示できる行がありません。左の絞り込みや検索を変えてください。";
+            }
+            return;
+          }
+
+          const mkChart = (canvasId, labels, data, labelText, color) => {
+            const el = document.getElementById(canvasId);
+            if (!el) return null;
+            return new Chart(el, {
+              type: "bar",
+              data: {
+                labels,
+                datasets: [
+                  {
+                    label: labelText,
+                    data,
+                    backgroundColor: color,
+                    borderRadius: 6,
+                    maxBarThickness: 20,
+                  },
+                ],
+              },
+              options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (c) => `${c.dataset.label}: ¥${Math.round(c.raw).toLocaleString("ja-JP")}`,
+                    },
+                  },
+                },
+                scales: {
+                  x: {
+                    ticks: { callback: (v) => yenAxis(v) },
+                    grid: { color: "#e8eaf0" },
+                  },
+                  y: {
+                    ticks: { font: { size: 10 } },
+                    grid: { display: false },
+                  },
+                },
+              },
+            });
+          };
+
+          chartSalesInst = mkChart(
+            "chartSales",
+            topSales.map((x) => shortLabel(x.label, 14)),
+            topSales.map((x) => x.sales),
+            "売上（税抜）",
+            "rgba(37, 99, 235, 0.78)"
+          );
+          chartProfitInst = mkChart(
+            "chartProfit",
+            topGp.map((x) => shortLabel(x.label, 14)),
+            topGp.map((x) => x.gp),
+            "粗利（概算）",
+            "rgba(15, 118, 110, 0.78)"
+          );
+
+          const pl = {
+            week: "グラフのみスケール×0.22（ダミー）",
+            month: "グラフのみスケール×1（ダミー）",
+            year: "グラフのみスケール×7.5（ダミー）",
+            custom: "グラフのみスケール×1（ダミー）",
+          };
+          const pn =
+            period === "week" ? "週" : period === "month" ? "月" : period === "year" ? "会計年度" : "任意";
+          if (rankPeriodNote) {
+            rankPeriodNote.innerHTML = `上部の期間: <strong>${pn}</strong>・左の絞り込み・検索に連動。社内SKUで集計。${pl[period]}`;
+          }
+        }
+
+        function escHtml(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function updateAiPane() {
+          if (!aiPaneContent) return;
+          const agg = getScaledAgg();
+          const raw = filteredRowsForCharts();
+          const inferredN = raw.filter((r) => r.inferred).length;
+
+          const periodJa =
+            period === "week"
+              ? "週次"
+              : period === "month"
+                ? "月次累計"
+                : period === "year"
+                  ? "会計年度累計（モック）"
+                  : "任意期間";
+
+          const scopeBits = [];
+          if (treeFilter === "all") scopeBits.push("全販路");
+          else if (treeFilter === "own") scopeBits.push("自社ECのみ");
+          else if (treeFilter === "ext") {
+            scopeBits.push("外部販路");
+            scopeBits.push(
+              subFilter === "dept" ? "百貨店に限定" : subFilter === "other" ? "その他外部に限定" : "百貨店＋その他"
+            );
+          }
+          if (partnerSelect.value !== "all") {
+            const opt = partnerSelect.options[partnerSelect.selectedIndex];
+            scopeBits.push(`取引先: ${opt.text}`);
+          }
+          const scopeLabel = scopeBits.join(" · ");
+
+          if (aiContextNote) {
+            aiContextNote.textContent = `入力: ${periodJa} · ${scopeLabel} · SKU数（集計後）${
+              agg.length
+            }件 · 推定結合行 ${inferredN}件 · 採用済み施策 ${aiDecisions.length}件（モック）`;
+          }
+
+          if (!agg.length) {
+            aiPaneContent.innerHTML =
+              '<p class="ai-muted">この条件では集計できるSKUがありません。左の絞り込み・検索を調整してください。</p>';
+            return;
+          }
+
+          const totalSales = agg.reduce((a, x) => a + x.sales, 0);
+          const totalGp = agg.reduce((a, x) => a + x.gp, 0);
+          const rate = totalSales > 0 ? (totalGp / totalSales) * 100 : 0;
+          const topS = [...agg].sort((a, b) => b.sales - a.sales)[0];
+          const topG = [...agg].sort((a, b) => b.gp - a.gp)[0];
+
+          const marginComment =
+            rate < 35
+              ? "粗利率に伸ばし余地がありそうです。高回転SKUは、値引きルールと原価の突合をセットで見直すと効きやすいです。"
+              : "粗利率は概ね堅めに見えます。次の打ち手は『売上の伸ばし方』と『販路間の配分』が中心になりやすいです。";
+
+          const tailComment =
+            topS.id !== topG.id
+              ? `売上首位（${escHtml(topS.label)}）と粗利首位（${escHtml(
+                  topG.label
+                )}）が分かれているため、セット訴求やクロスセルの設計余地があります。`
+              : `売上・粗利の両方で「${escHtml(topS.label)}」が突出しているため、欠品・価格改定の影響が全体に波及しやすい点に注意が必要です。`;
+
+          const p1 =
+            inferredN > 0
+              ? {
+                  title: "マスタ精度を上げて“見えない損失”を止める",
+                  body: `推定結合が${inferredN}件あります。販路商品IDの欠落を減らすと、粗利の再現性が上がり、施策判断が速くなります（週次の修正工数も減りやすい）。`,
+                }
+              : {
+                  title: "売上首位SKUの供給・露出を最優先で安定化",
+                  body: `「${escHtml(
+                    topS.label
+                  )}」の在庫・リードタイム・掲載順を点検し、欠品と価格ブレを先に潰すのがROIが高いことが多いです。`,
+                };
+
+          const p2 =
+            treeFilter === "own" || (treeFilter === "all" && partnerSelect.value === "all")
+              ? {
+                  title: "自社ECで“まとめ買い”導線を強化",
+                  body: "売れ筋SKUを軸に、同温度帯・同調理時間帯の組み合わせをレコメンド（カート内提案）すると、客単価が伸びやすいです。",
+                }
+              : {
+                  title: "外部販路の手数料後粗利を、SKU単位で週次レビュー",
+                  body: "百貨店・モール別に、手数料率が効きすぎているSKUを洗い出し、価格・セット・訴求のどれを動かすかを優先順位付けします。",
+                };
+
+          const p3 = {
+            title: "キャンペーンは「期間」と「在庫」をセットで設計",
+            body:
+              period === "week"
+                ? "週次では反応が速いため、短い告知＋在庫上限の先設定が重要です（売れたのに供給が追いつかない事故を避ける）。"
+                : "月次／年度視点では、季節イベントに合わせたSKUポートフォリオ（定番＋攻めの1点）に寄せると打ち返しが楽です。",
+          };
+
+          const p4 = {
+            title: "次の一手を「検証可能な単位」に分解",
+            body: "例: 価格は±3%だけ試す、訴求は1枚LPだけ差し替える、など。効いた／効かないを次の週の数字で判定できる形にします。",
+          };
+
+          const baseProposals = [
+            { slot: "p1", pri: "P1", cls: "badge-p1", ...p1 },
+            { slot: "p2", pri: "P2", cls: "badge-p2", ...p2 },
+            { slot: "p3", pri: "P3", cls: "badge-p3", ...p3 },
+            { slot: "p4", pri: "P4", cls: "badge-p4", ...p4 },
+          ];
+
+          currentProposalsBySlot = {};
+          const proposals = baseProposals.map((p) => {
+            const rev = aiRevisions[p.slot];
+            const merged = rev
+              ? { ...p, title: rev.title || p.title, body: rev.body, version: rev.version }
+              : { ...p, version: 1 };
+            currentProposalsBySlot[p.slot] = merged;
+            return merged;
+          });
+
+          const proposalsHtml = proposals
+            .map((p) => {
+              const adopted = aiDecisions.some((d) => d.slot === p.slot);
+              const revBadge = p.version > 1 ? `<span class="ai-rev-badge">改訂 v${p.version}</span>` : "";
+              const adoptedPill = adopted ? '<span class="status-pill status-adopted">採用済</span>' : "";
+              return `
+            <li data-slot="${p.slot}">
+              <div class="ai-pri"><span class="${p.cls}">${p.pri}</span><strong>${escHtml(p.title)}</strong>${revBadge}${adoptedPill}</div>
+              <p>${escHtml(p.body)}</p>
+              <div class="ai-actions">
+                <button type="button" class="ai-btn" data-action="discuss" data-slot="${p.slot}">AIと相談</button>
+                <button type="button" class="ai-btn ai-btn-primary" data-action="adopt" data-slot="${p.slot}" ${adopted ? "disabled" : ""}>${adopted ? "採用済み" : "この施策を採用"}</button>
+              </div>
+            </li>`;
+            })
+            .join("");
+
+          aiPaneContent.innerHTML = `
+            <section class="ai-card">
+              <h3>この範囲のサマリー</h3>
+              <div class="ai-kv">
+                <div><label>税抜売上（集計）</label><strong>¥${Math.round(totalSales).toLocaleString("ja-JP")}</strong></div>
+                <div><label>粗利（概算）</label><strong>¥${Math.round(totalGp).toLocaleString("ja-JP")}</strong></div>
+                <div><label>粗利率（概算）</label><strong>${rate.toFixed(1)}%</strong></div>
+                <div><label>SKU数</label><strong>${agg.length}</strong></div>
+              </div>
+              <p class="ai-muted" style="margin:0">
+                売上首位: <strong>${escHtml(topS.label)}</strong>（${escHtml(topS.id)}） /
+                粗利首位: <strong>${escHtml(topG.label)}</strong>（${escHtml(topG.id)}）
+              </p>
+            </section>
+            <section class="ai-card">
+              <h3>分析コメント（モック）</h3>
+              <ul class="ai-list">
+                <li><strong>${periodJa}</strong>・<strong>${escHtml(scopeLabel)}</strong>の条件で見ると、${marginComment}</li>
+                <li>${tailComment}</li>
+                ${
+                  aiDecisions.length
+                    ? `<li>これまでに<strong>${aiDecisions.length}件</strong>の施策が採用されています。次の提案はその決定を踏まえ、重複を避ける前提です（モック：AIへの申し送り）。</li>`
+                    : ""
+                }
+                <li>※本番では、在庫・広告費・返品・ギフト需要などの外部要因も混ぜて文章化する想定です（このHTMLは固定ルールの例）。</li>
+              </ul>
+            </section>
+            <section class="ai-card">
+              <h3>施策案（優先度付き・モック）</h3>
+              <ol class="ai-proposals">${proposalsHtml}</ol>
+            </section>
+            ${renderActiveChatHtml()}
+            ${renderDecisionsHtml()}`;
+        }
+
+        function render() {
+          const query = q.value.trim().toLowerCase();
+          const frag = document.createDocumentFragment();
+
+          const groups = [
+            { key: "own", label: "自社EC" },
+            { key: "dept", label: "外部販路 · 百貨店" },
+            { key: "other", label: "外部販路 · その他" },
+          ];
+
+          groups.forEach((g) => {
+            const inGroup = rows.filter(
+              (r) =>
+                (g.key === "own" && r.midCat === "own") ||
+                (g.key === "dept" && r.midCat === "dept") ||
+                (g.key === "other" && r.midCat === "other")
+            );
+            const visible = inGroup.filter((r) => {
+              if (!passesTree(r)) return false;
+              if (!passesPartner(r)) return false;
+              if (!query) return true;
+              const hay = (r.name + r.internalId + (r.channelPid || "") + r.partner).toLowerCase();
+              return hay.includes(query);
+            });
+            if (!visible.length) return;
+
+            const trg = document.createElement("tr");
+            trg.className = "group-row";
+            trg.innerHTML = `<td colspan="16">${g.label}</td>`;
+            frag.appendChild(trg);
+
+            visible.forEach((r) => {
+              const fee = feeAmount(r);
+              const gpv = gp(r);
+              const tr = document.createElement("tr");
+              const pid = r.channelPid
+                ? `<span class="mono">${r.channelPid}</span>`
+                : `<span class="muted">（未記入）</span>`;
+              const inf = r.inferred
+                ? `<span class="flag" title="販路商品IDが空のため、正式商品一覧と商品名で自動結合した想定">推定</span>`
+                : "";
+              tr.innerHTML = `
+                <td>${r.major}</td>
+                <td>${r.mid}</td>
+                <td>${r.partner}</td>
+                <td class="name-cell">${r.name}${inf}</td>
+                <td class="mono">${r.internalId}</td>
+                <td>${pid}</td>
+                <td class="num-r">${yen(r.sales)}</td>
+                <td class="num-r">${r.units.toLocaleString("ja-JP")}</td>
+                <td class="num-r">${(r.feeRate * 100).toFixed(1)}%</td>
+                <td class="num-r">${yen(fee)}</td>
+                <td class="num-r">${yen(r.cost)}</td>
+                <td class="num-r"><strong>${yen(gpv)}</strong></td>
+                <td class="num-r">${pctCell(r.salesMom)}</td>
+                <td class="num-r">${pctCell(r.salesYoy)}</td>
+                <td class="num-r">${pctCell(r.gpMom)}</td>
+                <td class="num-r">${pctCell(r.gpYoy)}</td>`;
+              frag.appendChild(tr);
+            });
+          });
+
+          tbody.innerHTML = "";
+          tbody.appendChild(frag);
+          if (!tbody.children.length) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td colspan="16" class="muted" style="padding:1rem">該当する行がありません</td>`;
+            tbody.appendChild(tr);
+          }
+          updateRankCharts();
+          updateAiPane();
+        }
+
+        function syncSubActive() {
+          subBtns.forEach((b) => {
+            b.classList.toggle("active", b.dataset.filter === subFilter);
+          });
+        }
+
+        periodTabs.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            periodTabs.forEach((b) => b.classList.toggle("active", b === btn));
+            period = btn.dataset.period;
+            const labels = {
+              week: "2026年第20週（月〜日）· 税抜",
+              month: "2026年5月 累計（税抜）",
+              year: "2026年度 累計（4/1〜表示日·税抜）",
+              custom: "任意期間（開始〜終了を選択·税抜）",
+            };
+            fiscalHint.innerHTML = `会計年度: <strong>2026年度</strong>（2026/4/1〜2027/3/31）· 表示中: <strong>${labels[period]}</strong>（モックのため表データは同じ）`;
+            updateRankCharts();
+            updateAiPane();
+          });
+        });
+
+        treeBtns.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            treeBtns.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            treeFilter = btn.dataset.filter;
+            if (treeFilter !== "ext") {
+              partnerSelect.value = "all";
+            }
+            render();
+          });
+        });
+
+        subBtns.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            treeBtns.forEach((b) => b.classList.remove("active"));
+            document.querySelector('.tree-btn[data-filter="ext"]').classList.add("active");
+            treeFilter = "ext";
+            subFilter = btn.dataset.filter;
+            syncSubActive();
+            render();
+          });
+        });
+
+        partnerSelect.addEventListener("change", render);
+        q.addEventListener("input", render);
+
+        // AIペイン内のボタン類（相談・採用・共有など）をイベント委譲で処理
+        aiPaneContent?.addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-action]");
+          if (!btn) return;
+          const action = btn.dataset.action;
+          const slot = btn.dataset.slot;
+          if (action === "discuss") {
+            aiActiveSlot = slot;
+            saveAiState();
+            updateAiPane();
+            scrollChatIntoView();
+          } else if (action === "close-chat") {
+            aiActiveSlot = null;
+            saveAiState();
+            updateAiPane();
+          } else if (action === "chip") {
+            applyLens(slot, btn.dataset.lens);
+          } else if (action === "adopt") {
+            adoptProposal(slot);
+          } else if (action === "undo") {
+            undoDecision(btn.dataset.id);
+          } else if (action === "share") {
+            openShareModal(btn.dataset.id);
+          }
+        });
+
+        aiPaneContent?.addEventListener("submit", (e) => {
+          const form = e.target.closest(".ai-chat-form");
+          if (!form) return;
+          e.preventDefault();
+          const slot = form.dataset.slot;
+          const ta = form.querySelector("textarea");
+          const text = (ta?.value || "").trim();
+          if (!text) return;
+          sendChat(slot, text);
+        });
+
+        shareModalClose?.addEventListener("click", closeShareModal);
+        shareModal?.addEventListener("click", (e) => {
+          if (e.target === shareModal) closeShareModal();
+        });
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && shareModal && !shareModal.hidden) closeShareModal();
+        });
+
+        loadLayoutPrefs();
+        loadAiState();
+        syncAiChrome();
+        syncSubActive();
+        render();
+      })();
+    </script>
+  </body>
+</html>
